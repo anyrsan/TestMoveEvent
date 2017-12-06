@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF">
+
+
+    <ImageView
+        android:id="@+id/openBrowser"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_alignParentTop="true"
+        android:src="@mipmap/log" />
+
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_below="@+id/openBrowser"
+        android:gravity="center"
+        android:text="主要测试下view的滑动，处理事件(仿今日头条上滑下滑关闭浏览视图)"
+        android:textColor="@color/colorAccent" />
+
+    <FrameLayout
+        android:id="@+id/browserfg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</RelativeLayout>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.any.testmoveevent.BrowserImageViewGroup
+        android:id="@+id/browserviewgroup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000">
+
+        <android.support.v4.view.ViewPager
+            android:id="@+id/viewpager"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_centerInParent="true"
+            android:translationY="-300dp" />
+
+    </com.any.testmoveevent.BrowserImageViewGroup>
+
+
+    <TextView
+        android:id="@+id/pageTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:padding="30dp"
+        android:text="10"
+        android:textColor="@color/while_k" />
+
+</RelativeLayout>
+
+
