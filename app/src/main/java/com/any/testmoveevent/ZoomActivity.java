@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -40,7 +41,7 @@ public class ZoomActivity extends AppCompatActivity {
             }
         });
 
-        mShortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+        mShortAnimationDuration = 2000;
     }
 
 
@@ -64,7 +65,7 @@ public class ZoomActivity extends AppCompatActivity {
         findViewById(R.id.container).getGlobalVisibleRect(finalBounds, globalOffset);
 
 
-        Log.e("msg", "-->" + finalBounds + "==>" + globalOffset);
+        Log.e("msg", "-->" + finalBounds + "==>" + globalOffset  +"==>" +getStatusBarHeight(this));
 
         startBounds.offset(-globalOffset.x, -globalOffset.y);
         finalBounds.offset(-globalOffset.x, -globalOffset.y);
@@ -156,6 +157,19 @@ public class ZoomActivity extends AppCompatActivity {
         });
 
 
+    }
+
+
+
+
+    // 获取状态栏高度，一般为 25dp
+    public static int getStatusBarHeight(Context context) {
+        int result = 0;
+        int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = context.getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
     }
 
 

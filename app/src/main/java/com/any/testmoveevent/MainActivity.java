@@ -4,15 +4,13 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
-import android.view.Window;
 
 /**
  * @author any
  * @date 2017/12/5
  */
-public class MainActivity extends AppCompatActivity implements BrowserImageViewGroup.IBrowserCloseView {
+public class MainActivity extends AppCompatActivity implements DragViewGroup.IBrowserCloseView {
 
     BrowserFragment browserFragment;
     public static final String FGTAG = "browse";

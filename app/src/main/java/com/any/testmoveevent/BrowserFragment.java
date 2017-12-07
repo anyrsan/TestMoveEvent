@@ -14,10 +14,10 @@ import android.widget.TextView;
  */
 public class BrowserFragment extends Fragment {
 
-    private BrowserImageViewGroup.IBrowserCloseView iBrowserCloseView;
-    private BrowserImageViewGroup viewGroup;
+    private DragViewGroup.IBrowserCloseView iBrowserCloseView;
+    private DragViewGroup viewGroup;
 
-    public void setIBrowserCloseView(BrowserImageViewGroup.IBrowserCloseView iBrowserCloseView) {
+    public void setIBrowserCloseView(DragViewGroup.IBrowserCloseView iBrowserCloseView) {
         this.iBrowserCloseView = iBrowserCloseView;
     }
 
@@ -31,7 +31,7 @@ public class BrowserFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_browser, container, false);
 
-         viewGroup = rootView.findViewById(R.id.browserviewgroup);
+         viewGroup = rootView.findViewById(R.id.dragviewgroup);
 
         viewGroup.setIBrowserCloseView(iBrowserCloseView);
 
@@ -39,11 +39,10 @@ public class BrowserFragment extends Fragment {
 
         final int[] rid = {R.mipmap.log, R.mipmap.timg, R.mipmap.timt1, R.mipmap.timt2, R.mipmap.timt3};
 
-        MyImageViewGoup imageViewGoup = rootView.findViewById(R.id.imageviewgroup);
-
+        BrowserImageViewGroup imageViewGroup = rootView.findViewById(R.id.browserimageviewgroup);
 
         SubViewData2 data2 = new SubViewData2(rid,pageTv);
-        imageViewGoup.setViewGoup(data2);
+        imageViewGroup.setViewGoup(data2);
 
         return rootView;
     }

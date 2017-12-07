@@ -1,81 +1,199 @@
 package com.any.testmoveevent;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.view.MotionEventCompat;
 import android.util.AttributeSet;
+import android.util.SparseArray;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.ViewTreeObserver;
-import android.widget.RelativeLayout;
+import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.animation.LinearInterpolator;
+import android.widget.Scroller;
 
 /**
  * @author any
- * @date 2017/12/5
- * 上下滑动目标View
+ * @date 2017/12/6
+ * 此view是用来处理循环的，完成分页显示  基于3个view循环
  */
-public class BrowserImageViewGroup extends RelativeLayout {
-
-    //目标view
-    private View mTargetView;
-    // 当前的移动距离
-    private float mCurrentTargetTY;
-    //高度
-    private int mTargetHeight;
-    //背景
-    private Drawable backDrawable;
-    //动画
-    private ValueAnimator animator;
-
-    private boolean interceptDrag = false;
-
+public class BrowserImageViewGroup extends ViewGroup {
+    private SparseArray<View> mapView = null;
     private static final int INVALID_POINTER = -1;
     private int mTouchSlop;
-    private float mInitialDownY;
     private float mInitialDownX;
     private boolean mIsBeingDragged;
     private int mActivePointerId = INVALID_POINTER;
+    private boolean interceptDrag = false;
+    private Scroller mScroller;
+    private int mCurScreen = 0;
+    private int mTotal = 1;
 
 
-    public BrowserImageViewGroup(@NonNull Context context) {
+    private final static int INTERLACES = 15;
+    private final static int SNAP_VELOCITY = 100;
+    private final static int DEFAULT_DURATION = 300;
+
+    private VelocityTracker velocityTracker;
+    private ISubView iSubView;
+
+    //外层更改此值就可以配置成动态了
+    private int interlaces = INTERLACES;
+    private int duration = DEFAULT_DURATION;
+
+    public BrowserImageViewGroup(Context context) {
         super(context);
     }
 
-    public BrowserImageViewGroup(@NonNull Context context, @Nullable AttributeSet attrs) {
+    public BrowserImageViewGroup(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public BrowserImageViewGroup(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public BrowserImageViewGroup(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-    }
-
-
-    private void initBase() {
-        setWillNotDraw(false);
-        mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
     }
 
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
         initBase();
-        //注意实际上不能这样写
-        mTargetView = getChildAt(0);
-        backDrawable = getBackground();
-        getBackground().setAlpha(0);
-        mTargetView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                mTargetHeight = mTargetView.getHeight();
-                mCurrentTargetTY = mTargetView.getTranslationY();
-                mTargetView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                openView();
-            }
-        });
+    }
+
+    private void initBase() {
+        setWillNotDraw(false);
+        mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        mScroller = new Scroller(getContext(),new LinearInterpolator());
+    }
+
+
+    /**
+     * 处理view
+     *
+     * @param isubview
+     */
+    public void setViewGoup(ISubView isubview) {
+        mapView = isubview.getView(getContext());
+        iSubView = isubview;
+        mTotal = isubview.getSize();
+        LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT,
+                LayoutParams.MATCH_PARENT);
+
+
+        addView(getView(0), params);
+        addView(getView(1), params);
+        addView(getView(2), params);
+
+        //定位view
+        requestLayout();
+        startLoadData();
+    }
+
+    public void startLoadData() {
+        openPage(mCurScreen);
+        loadData(mCurScreen);
+        int tpage = mCurScreen - 1;
+        if (tpage > -1) {
+            loadData(tpage);
+        }
+        tpage = mCurScreen + 1;
+        if (tpage < mTotal) {
+            loadData(tpage);
+        }
+    }
+
+
+    private void startAnimation(int mPage) {
+        stopScroller();
+        final int delta = getTargetWidth(mPage) - getScrollX();
+        mScroller.startScroll(getScrollX(), 0, delta, 0, duration);
+        postInvalidate();
+    }
+
+    @Override
+    public void computeScroll() {
+        if (mScroller.computeScrollOffset()) {
+            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            postInvalidate();
+        }
+    }
+
+
+    /***
+     * get view by map
+     *
+     * @param page
+     * @return
+     */
+    private View getView(int page) {
+        if (mapView == null) return null;
+        page = page % mapView.size();
+        return mapView.get(page);
+    }
+
+    /***
+     * view layout local
+     *
+     * @param mCurScreen
+     */
+    private void layoutView(int mCurScreen) {
+        View view = getView(mCurScreen);
+        if (view == null) return;
+        if (mCurScreen >= 0 && mCurScreen < mTotal) {
+            view.layout(getTargetWidth(mCurScreen), 0,
+                    getTargetWidth(mCurScreen) + getWidth(), getHeight());
+        } else {
+            view.layout(0, 0, 0, 0);
+        }
+    }
+
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        final int count = getChildCount();
+        for (int i = 0; i < count; i++) {
+            getChildAt(i).measure(widthMeasureSpec, heightMeasureSpec);
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        initLayout();
+    }
+
+    //初始化view位置
+    private void initLayout() {
+        layoutView(mCurScreen - 1);
+        layoutView(mCurScreen);
+        layoutView(mCurScreen + 1);
+        scrollTo(getTargetWidth(mCurScreen), 0);
+    }
+
+    private void stopScroller() {
+        if (!mScroller.isFinished()) {
+            mScroller.abortAnimation();
+        }
+    }
+
+    //interlaces*2 超出屏幕
+    @Override
+    public void scrollTo(int x, int y) {
+        super.scrollTo(Math.max(0, Math.min(x, getTargetWidth(mTotal - 1))), y);
+    }
+
+    public int getTargetWidth(int mCurScreen) {
+        return (getWidth() + interlaces) * (mCurScreen);
+    }
+
+    public int getLocalX() {
+        return getTargetWidth(mCurScreen);
+    }
+
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override
@@ -84,49 +202,42 @@ public class BrowserImageViewGroup extends RelativeLayout {
         final int action = MotionEventCompat.getActionMasked(ev);
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                interceptDrag = false;
+                stopScroller();
                 mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
                 mIsBeingDragged = false;
-                float initialDownY = getMotionEventY(ev, mActivePointerId);
                 float initialDownX = getMotionEventX(ev, mActivePointerId);
-                if (initialDownY == -1 || initialDownX == -1) {
+                if (initialDownX == -1) {
                     return false;
                 }
-                mInitialDownY = initialDownY;
                 mInitialDownX = initialDownX;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mActivePointerId == INVALID_POINTER) {
                     return false;
                 }
-                final float y = getMotionEventY(ev, mActivePointerId);
                 final float x = getMotionEventX(ev, mActivePointerId);
-                if (y == -1 || x == -1) {
+                if (x == -1) {
                     return false;
                 }
                 final float xDiff = mInitialDownX - x;
-                final float yDiff = mInitialDownY - y;
                 //从这里开始处理
 
-                if (Math.abs(xDiff) > mTouchSlop || Math.abs(xDiff) > Math.abs(yDiff) || interceptDrag) {
+                if (Math.abs(xDiff) < mTouchSlop || interceptDrag) {
                     return false;
                 }
 
                 if (!mIsBeingDragged) {
-                    mInitialDownY = y;
+                    mInitialDownX = x;
                     mIsBeingDragged = true;
+                    setRequestDisallowInterceptTouchEvent(true); //请求不要再拦截了
                 }
                 break;
             case MotionEventCompat.ACTION_POINTER_UP:
                 onSecondaryPointerUp(ev);
                 break;
-            case MotionEvent.ACTION_UP:
-                finishSpinner();
-                interceptDrag = mIsBeingDragged = false;
-                mActivePointerId = INVALID_POINTER;
-                break;
             case MotionEvent.ACTION_CANCEL:
-                resetTargetView();
+            case MotionEvent.ACTION_UP:
+                moveSelf();
                 mIsBeingDragged = false;
                 mActivePointerId = INVALID_POINTER;
                 break;
@@ -137,24 +248,30 @@ public class BrowserImageViewGroup extends RelativeLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
+        if (velocityTracker == null) {
+            velocityTracker = VelocityTracker.obtain();
+        }
+        velocityTracker.addMovement(ev);
         final int action = MotionEventCompat.getActionMasked(ev);
-        int pointerIndex = -1;
+        int pointerIndex;
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
                 mIsBeingDragged = true;
+                stopScroller();
                 break;
             case MotionEvent.ACTION_MOVE:
-                float initialDownY = getMotionEventY(ev, mActivePointerId);
-                if (initialDownY == -1) {
+                float initialDownX = getMotionEventX(ev, mActivePointerId);
+                if (initialDownX == -1) {
                     return false;
                 }
                 //降低滑动速率
-                final float offset = (initialDownY - mInitialDownY) * 0.7f;
-                mInitialDownY = initialDownY;
+                final float offset = (initialDownX - mInitialDownX) * 0.9f;
+                mInitialDownX = initialDownX;
+
                 // 不能处理时,应该返回false
                 if (mIsBeingDragged) {
-                    boolean isTrue = drag(offset);
+                    boolean isTrue = drag(-offset);
                     if (!isTrue) {
                         resetMotionEvent(ev);
                     }
@@ -166,125 +283,106 @@ public class BrowserImageViewGroup extends RelativeLayout {
                     return false;
                 }
                 mActivePointerId = MotionEventCompat.getPointerId(ev, pointerIndex);
-                initialDownY = getMotionEventY(ev, mActivePointerId);
-                if (initialDownY == -1) {
+                initialDownX = getMotionEventX(ev, mActivePointerId);
+                if (initialDownX == -1) {
                     return false;
                 }
-                mInitialDownY = initialDownY;
+                mInitialDownX = initialDownX;
                 mIsBeingDragged = true;
                 break;
             case MotionEvent.ACTION_UP:
+                velocityTracker.computeCurrentVelocity(1000);
+                int velocityX = (int) velocityTracker.getXVelocity();
+                int offsetX = getScrollX() - getLocalX();
+                int mPage = mCurScreen;
+                if (mPage > 0 && velocityX > SNAP_VELOCITY && -offsetX > getWidth() / 10) {
+                    movePrePage();
+                } else if (mPage < mTotal - 1 && velocityX < -SNAP_VELOCITY && offsetX > getWidth() / 10) {
+                    moveNextPage();
+                } else {
+                    moveSelf();
+                }
+                velocityTracker.recycle();
+                velocityTracker = null;
                 pointerIndex = MotionEventCompat.findPointerIndex(ev, mActivePointerId);
                 if (pointerIndex < 0) {
                     return false;
                 }
-                finishSpinner();
                 mIsBeingDragged = false;
                 mActivePointerId = INVALID_POINTER;
                 return false;
+            case MotionEvent.ACTION_CANCEL:
+                if (velocityTracker != null) {
+                    velocityTracker.recycle();
+                    velocityTracker = null;
+                }
+                moveSelf();
+                break;
         }
         return true;
     }
 
-    private boolean drag(float offset) {
-        mCurrentTargetTY = mTargetView.getTranslationY();
-        mTargetView.setTranslationY(mCurrentTargetTY + offset);
-        float mCurrY = Math.abs(mCurrentTargetTY);
-        setBackDrawableAlpha(mCurrY);
-        return true;
+    private void moveSelf() {
+        startAnimation(mCurScreen);
     }
 
-    private void setBackDrawableAlpha(float mCurrY) {
-        float percent = mCurrY / getHeight();
-        percent = 1 - Math.min(1, Math.max(0, percent));
-        int alpha = (int) (percent * 255);
-        getBackground().setAlpha(alpha);
+    public void moveNextPage() {
+        mCurScreen++;
+        handlerNext(mCurScreen);
+        startAnimation(mCurScreen);
+    }
 
-        if (alpha == 0 && null != icloseView) {
-            icloseView.closeView();
+    public void movePrePage() {
+        mCurScreen--;
+        handlerPrevious(mCurScreen);
+        startAnimation(mCurScreen);
+    }
+
+
+    private void handlerPrevious(int mPage) {
+        destroyData(mPage + 2);
+        layoutView(mPage - 1);
+        loadData(mPage - 1);
+        openPage(mPage);
+    }
+
+    private void handlerNext(int mPage) {
+        destroyData(mPage - 2);
+        layoutView(mPage + 1);
+        loadData(mPage + 1);
+        openPage(mPage);
+    }
+
+    private void destroyData(int page) {
+        if (page > mTotal - 1 || page < 0) return;
+        if (iSubView != null) {
+            iSubView.destroyData(page, getView(page));
         }
     }
 
-
-    private void finishSpinner() {
-        if (Math.abs(mCurrentTargetTY) < mTargetHeight / 4) {
-            resetTargetView();
-        } else {
-            closeView();
+    private void loadData(int page) {
+        if (page > mTotal - 1 || page < 0) return;
+        if (iSubView != null) {
+            iSubView.loadData(page, getView(page));
         }
     }
 
-    public void closeView() {
-        cancelAnim();
-        float endF = 0f;
-        if (mCurrentTargetTY < 0) {
-            endF = -getHeight();
-        } else {
-            endF = getHeight();
-        }
-        updateTargetView(mTargetView, mCurrentTargetTY, endF);
-    }
-
-    public void openView() {
-        float startY = mCurrentTargetTY;
-        float endY = 0;
-        if (startY != endY) {
-            updateTargetView(mTargetView, startY, endY);
+    private void openPage(int page) {
+        if (iSubView != null) {
+            iSubView.openPage(page);
         }
     }
 
 
     /**
-     * 还原
-     */
-    private void resetTargetView() {
-        cancelAnim();
-        float startY = mCurrentTargetTY;
-        float endY = 0;
-        if (startY != endY) {
-            updateTargetView(mTargetView, startY, endY);
-        }
-    }
-
-    /**
-     * 更正view
+     * 需要
      *
-     * @param targetView
-     * @param startF
-     * @param endF
+     * @param offset
+     * @return
      */
-    private void updateTargetView(final View targetView, float startF, float endF) {
-        cancelAnim();
-        animator = ValueAnimator.ofFloat(startF, endF);
-        animator.setTarget(targetView);
-        animator.setDuration(300).start();
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                float value = (float) animation.getAnimatedValue();
-                mTargetView.setTranslationY(value);
-                mCurrentTargetTY = mTargetView.getTranslationY();
-                setBackDrawableAlpha(Math.abs(mCurrentTargetTY));
-            }
-        });
-    }
-
-    private void cancelAnim() {
-        if (animator != null && animator.isRunning()) {
-            animator.cancel();
-        }
-        animator = null;
-    }
-
-
-    public IBrowserCloseView icloseView;
-
-    public void setIBrowserCloseView(IBrowserCloseView icloseView) {
-        this.icloseView = icloseView;
-    }
-
-    public interface IBrowserCloseView {
-        void closeView();
+    private boolean drag(float offset) {
+        scrollBy((int) offset, 0);
+        return true;
     }
 
 
@@ -297,14 +395,6 @@ public class BrowserImageViewGroup extends RelativeLayout {
             final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
             mActivePointerId = MotionEventCompat.getPointerId(ev, newPointerIndex);
         }
-    }
-
-    private float getMotionEventY(MotionEvent ev, int activePointerId) {
-        final int index = MotionEventCompat.findPointerIndex(ev, activePointerId);
-        if (index < 0) {
-            return -1;
-        }
-        return MotionEventCompat.getY(ev, index);
     }
 
     private float getMotionEventX(MotionEvent ev, int activePointerId) {
@@ -325,11 +415,19 @@ public class BrowserImageViewGroup extends RelativeLayout {
         return ev;
     }
 
-
     @Override
     public void requestDisallowInterceptTouchEvent(boolean b) {
         interceptDrag = b;
+        //继续传递
+        setRequestDisallowInterceptTouchEvent(b);
     }
 
+
+    private void setRequestDisallowInterceptTouchEvent(boolean intercept) {
+        ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(intercept);
+        }
+    }
 
 }

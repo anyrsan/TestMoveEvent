@@ -3,22 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.any.testmoveevent.BrowserImageViewGroup
-        android:id="@+id/browserviewgroup"
+    <com.any.testmoveevent.DragViewGroup
+        android:id="@+id/dragviewgroup"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000">
 
 
-        <com.any.testmoveevent.MyImageViewGoup
-            android:id="@+id/imageviewgroup"
+        <com.any.testmoveevent.BrowserImageViewGroup
+            android:id="@+id/browserimageviewgroup"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_centerInParent="true"
             android:translationY="-300dp" />
 
 
-    </com.any.testmoveevent.BrowserImageViewGroup>
+    </com.any.testmoveevent.DragViewGroup>
 
 
     <TextView
