@@ -1,13 +1,12 @@
-# TestMoveEvent
-# 仿头条的上下滑动关闭图片浏览，主要是记录下View事件用法处理
-
-# todo
-  后续以library形式封装整个图片查看控件
+### 仿头条的上下滑动关闭图片浏览，主要是记录下View事件用法处理,自定义控件处理view事件上下滑与左右滑动冲突，可以固定模版事件代码。
 
 
+## 使用到的第三方库
+* [PhotoView](https://github.com/chrisbanes/PhotoView)
+* [glide](https://github.com/bumptech/glidew)
 
 #### License
-Copyright 2016 anyrsan
+Copyright 2017 anyrsan
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
