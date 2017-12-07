@@ -1,8 +1,12 @@
 package com.any.testmoveevent;
 
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.view.Window;
 
 /**
  * @author any
@@ -21,6 +25,10 @@ public class MainActivity extends AppCompatActivity implements BrowserImageViewG
         findViewById(R.id.openBrowser).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Rect mid= new Rect();
+                Point point = new Point();
+                view.getGlobalVisibleRect(mid,point);
+
                 getSupportFragmentManager().beginTransaction().replace(R.id.browserfg, browserFragment, FGTAG).commitAllowingStateLoss();
             }
         });

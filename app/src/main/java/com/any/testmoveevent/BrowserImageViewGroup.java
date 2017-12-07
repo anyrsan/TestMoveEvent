@@ -36,6 +36,7 @@ public class BrowserImageViewGroup extends RelativeLayout {
     private static final int INVALID_POINTER = -1;
     private int mTouchSlop;
     private float mInitialDownY;
+    private float mInitialDownX;
     private boolean mIsBeingDragged;
     private int mActivePointerId = INVALID_POINTER;
 
@@ -71,7 +72,7 @@ public class BrowserImageViewGroup extends RelativeLayout {
             public void onGlobalLayout() {
                 mTargetHeight = mTargetView.getHeight();
                 mCurrentTargetTY = mTargetView.getTranslationY();
-                mTargetView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                mTargetView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                 openView();
             }
         });
@@ -79,6 +80,7 @@ public class BrowserImageViewGroup extends RelativeLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        super.onInterceptTouchEvent(ev);
         final int action = MotionEventCompat.getActionMasked(ev);
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -86,23 +88,27 @@ public class BrowserImageViewGroup extends RelativeLayout {
                 mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
                 mIsBeingDragged = false;
                 float initialDownY = getMotionEventY(ev, mActivePointerId);
-                if (initialDownY == -1) {
+                float initialDownX = getMotionEventX(ev, mActivePointerId);
+                if (initialDownY == -1 || initialDownX == -1) {
                     return false;
                 }
                 mInitialDownY = initialDownY;
+                mInitialDownX = initialDownX;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mActivePointerId == INVALID_POINTER) {
                     return false;
                 }
                 final float y = getMotionEventY(ev, mActivePointerId);
-                if (y == -1) {
+                final float x = getMotionEventX(ev, mActivePointerId);
+                if (y == -1 || x == -1) {
                     return false;
                 }
+                final float xDiff = mInitialDownX - x;
                 final float yDiff = mInitialDownY - y;
                 //从这里开始处理
 
-                if (Math.abs(yDiff) < mTouchSlop || interceptDrag) {
+                if (Math.abs(xDiff) > mTouchSlop || Math.abs(xDiff) > Math.abs(yDiff) || interceptDrag) {
                     return false;
                 }
 
@@ -136,7 +142,7 @@ public class BrowserImageViewGroup extends RelativeLayout {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
-                mIsBeingDragged = false;
+                mIsBeingDragged = true;
                 break;
             case MotionEvent.ACTION_MOVE:
                 float initialDownY = getMotionEventY(ev, mActivePointerId);
@@ -201,7 +207,7 @@ public class BrowserImageViewGroup extends RelativeLayout {
 
 
     private void finishSpinner() {
-        if (Math.abs(mCurrentTargetTY) < mTargetHeight / 2) {
+        if (Math.abs(mCurrentTargetTY) < mTargetHeight / 4) {
             resetTargetView();
         } else {
             closeView();
@@ -301,6 +307,13 @@ public class BrowserImageViewGroup extends RelativeLayout {
         return MotionEventCompat.getY(ev, index);
     }
 
+    private float getMotionEventX(MotionEvent ev, int activePointerId) {
+        final int index = MotionEventCompat.findPointerIndex(ev, activePointerId);
+        if (index < 0) {
+            return -1;
+        }
+        return MotionEventCompat.getX(ev, index);
+    }
 
     public MotionEvent resetMotionEvent(MotionEvent ev) {
         int action = ev.getAction();
